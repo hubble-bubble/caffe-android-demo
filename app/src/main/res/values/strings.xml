@@ -4,5 +4,11 @@
     <string name="app_name">Caffe-Android-Demo</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="models_prompt">Choose a neural network</string>
+
+    <string-array name="models_arrays">
+        <item>plantClassification</item>
+        <item>bvlc_reference_caffenet</item>
+    </string-array>
 
 </resources>

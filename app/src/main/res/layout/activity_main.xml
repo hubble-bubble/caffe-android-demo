@@ -21,6 +21,19 @@
         android:layout_height="wrap_content"
         android:text="select an image" />
 
+    <Button
+        android:id="@+id/btnChooseModel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Change model" />
+
+    <Spinner
+        android:id="@+id/spinner1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:entries="@array/models_arrays"
+        android:prompt="@string/models_prompt" />
+
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content" >
@@ -39,7 +52,8 @@
             android:layout_alignParentTop="true"
             android:background="#88FFFFFF"
             android:layout_marginTop="20dp"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            android:textSize="25dp"/>
 
     </RelativeLayout>
 

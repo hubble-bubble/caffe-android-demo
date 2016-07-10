@@ -19,11 +19,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.sh1r0.caffe_android_lib.CaffeMobile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -38,10 +41,13 @@ public class MainActivity extends Activity implements CNNListener {
     private static final int REQUEST_IMAGE_CAPTURE = 100;
     private static final int REQUEST_IMAGE_SELECT = 200;
     public static final int MEDIA_TYPE_IMAGE = 1;
-    private static String[] IMAGENET_CLASSES;
+    //private static String[] IMAGENET_CLASSES;
+    private static List<String> IMAGENET_CLASSES;
 
     private Button btnCamera;
     private Button btnSelect;
+    private Button btnChooseModel;
+    private Spinner spinChooseModel;
     private ImageView ivCaptured;
     private TextView tvLabel;
     private Uri fileUri;
@@ -49,9 +55,11 @@ public class MainActivity extends Activity implements CNNListener {
     private Bitmap bmp;
     private CaffeMobile caffeMobile;
     File sdcard = Environment.getExternalStorageDirectory();
-    String modelDir = sdcard.getAbsolutePath() + "/caffe_mobile/bvlc_reference_caffenet";
+    String model = "plantClassification";
+    String modelDir = sdcard.getAbsolutePath() + "/caffe_mobile/" + model;
     String modelProto = modelDir + "/deploy.prototxt";
-    String modelBinary = modelDir + "/bvlc_reference_caffenet.caffemodel";
+    String modelBinary = modelDir + "/weights.caffemodel";
+    String labelsFile = modelDir + "/labels.txt";
 
     static {
         System.loadLibrary("caffe");
@@ -86,6 +94,22 @@ public class MainActivity extends Activity implements CNNListener {
             }
         });
 
+        spinChooseModel = (Spinner) findViewById(R.id.spinner1);
+
+        btnChooseModel = (Button) findViewById(R.id.btnChooseModel);
+        btnChooseModel.setOnClickListener(new Button.OnClickListener() {
+            public void onClick(View v) {
+                model = String.valueOf(spinChooseModel.getSelectedItem());
+                String modelDir = sdcard.getAbsolutePath() + "/caffe_mobile/" + model;
+                String modelProto = modelDir + "/deploy.prototxt";
+                String modelBinary = modelDir + "/weights.caffemodel";
+                String labelsFile = modelDir + "/labels.txt";
+                Toast.makeText(getApplicationContext(), "Changed network to: " + model, Toast.LENGTH_SHORT).show();
+                caffeMobile.loadModel(modelProto, modelBinary);
+                loadLabels(labelsFile);
+            }
+
+        });
         // TODO: implement a splash screen(?
         caffeMobile = new CaffeMobile();
         caffeMobile.setNumThreads(4);
@@ -94,19 +118,13 @@ public class MainActivity extends Activity implements CNNListener {
         float[] meanValues = {104, 117, 123};
         caffeMobile.setMean(meanValues);
 
-        AssetManager am = this.getAssets();
-        try {
-            InputStream is = am.open("synset_words.txt");
-            Scanner sc = new Scanner(is);
-            List<String> lines = new ArrayList<String>();
-            while (sc.hasNextLine()) {
-                final String temp = sc.nextLine();
-                lines.add(temp.substring(temp.indexOf(" ") + 1));
-            }
-            IMAGENET_CLASSES = lines.toArray(new String[0]);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        loadLabels(labelsFile);
+    }
+
+    private void initPrediction() {
+        btnCamera.setEnabled(false);
+        btnSelect.setEnabled(false);
+        tvLabel.setText("");
     }
 
     @Override
@@ -131,7 +149,7 @@ public class MainActivity extends Activity implements CNNListener {
             Log.d(LOG_TAG, String.valueOf(bmp.getHeight()));
             Log.d(LOG_TAG, String.valueOf(bmp.getWidth()));
 
-            dialog = ProgressDialog.show(MainActivity.this, "Predicting...", "Wait for one sec...", true);
+            dialog = ProgressDialog.show(MainActivity.this, "Predicting with network " + model, "Wait for one sec...", true);
 
             CNNTask cnnTask = new CNNTask(MainActivity.this);
             cnnTask.execute(imgPath);
@@ -141,12 +159,6 @@ public class MainActivity extends Activity implements CNNListener {
         }
 
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    private void initPrediction() {
-        btnCamera.setEnabled(false);
-        btnSelect.setEnabled(false);
-        tvLabel.setText("");
     }
 
     private class CNNTask extends AsyncTask<String, Void, Integer> {
@@ -174,7 +186,7 @@ public class MainActivity extends Activity implements CNNListener {
     @Override
     public void onTaskCompleted(int result) {
         ivCaptured.setImageBitmap(bmp);
-        tvLabel.setText(IMAGENET_CLASSES[result]);
+        tvLabel.setText(IMAGENET_CLASSES.get(result));
         btnCamera.setEnabled(true);
         btnSelect.setEnabled(true);
 
@@ -236,5 +248,23 @@ public class MainActivity extends Activity implements CNNListener {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void loadLabels(String labelsFile){
+        if (IMAGENET_CLASSES != null)
+            IMAGENET_CLASSES.clear();
+        AssetManager am = this.getAssets();
+        try {
+            InputStream is = new FileInputStream(labelsFile);
+            Scanner sc = new Scanner(is);
+            List<String> lines = new ArrayList<String>();
+            while (sc.hasNextLine()) {
+                final String temp = sc.nextLine();
+                lines.add(temp.substring(temp.indexOf(" ") + 1));
+            }
+            IMAGENET_CLASSES = lines;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
